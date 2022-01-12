@@ -20,7 +20,7 @@
 
 import _ from "../../libs/helper";
 import { HTTPERROR_400 } from "../../shared/libs/constants";
-import cosmosDb from "../../libs/cosmos-db";
+import CosmosDB from "../../libs/cosmos-db";
 import elasticSearch from "../../libs/elastic-search";
 import { getEntity } from '../../shared/libs/metadata';
 
@@ -110,7 +110,7 @@ export const query = async (event, context, callback) => {
         if (query.ids.length>0)
         {
             //need to make a query to get all detail data from cosmosDB
-            result = await cosmosDb.query(cx, query, true, true);
+            result = await CosmosDB.query(cx, query, true, true);
 
             result.data = _.map(result.data, (r) => {
                 r.highlight = highlights[r.id];
@@ -155,7 +155,7 @@ export const reIndexAllData = async (event, context, callback) => {
         const entityName = _.getPropValueOfEvent(event, 'entityName');
         const pageSize = _.getIntValueOfEvent(event, 'pageSize', 100);
 
-        const records = await cosmosDb.queryRaw(cx, {
+        const records = await CosmosDB.queryRaw(cx, {
             query: `SELECT * FROM c WHERE ${_.isNonEmptyString(entityName) ? 'c.entityName=@entityName AND ' : ''} (c.searchReindexedOn < @searchReindexedOn OR NOT IS_DEFINED(c.searchReindexedOn))`,
             parameters: [
                 {
@@ -184,14 +184,14 @@ export const reIndexAllData = async (event, context, callback) => {
 
                     const entity = getEntity(cx.context, data.entityName, data.entityType);
 
-                    data.searchDisplay = cosmosDb.generateSearchDisplay(entity, data);
-                    data.searchContent = cosmosDb.generateSearchContent(entity, data);
+                    data.searchDisplay = CosmosDB.generateSearchDisplay(entity, data);
+                    data.searchContent = CosmosDB.generateSearchContent(entity, data);
 
                     if (_.isGuid(data.ownedBy) && !data.modifiedBy) data.modifiedBy = data.ownedBy;
                     data.searchReindexedOn = _.utcISOString()
 
                     if (_.track) console.log(`Update ${data.id}`);
-                    await cosmosDb.update(cx, data, true, 'data.update');
+                    await CosmosDB.update(cx, data, true, 'data.update');
 
                     if (!result[resultProp]) result[resultProp] = 1; else result[resultProp] = result[resultProp] + 1;
                 }
