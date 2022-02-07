@@ -17,26 +17,28 @@
 // 
 //  ALL OTHER RIGHTS RESERVED
 
-import _ from './base';
-import { processQuery } from './elastic-search-query-processor.js';
+import {map, cloneDeep, each} from 'lodash';
+import {_track, isObject, isNonEmptyString, _process} from 'douhub-helper-util';
+import { processQuery } from './elastic-search-query-processor';
+import {elasticSearchQuery, elasticSearchDelete, elasticSearchUpsert, getElasticSearch } from 'douhub-helper-service';
 
-const goodIndexes = {};
-
-export const search = async (context, query, skipCheckSecurity) => {
+export const queryRecords = async (context: Record<string, any>, query: Record<string, any>, skipSecurityCheck: boolean) => {
 
 
-    let result = [];
+    let result:Record<string,any> = {};
 
-    if (_.trackLibs) console.log({ query: JSON.stringify(query) });
+    if (_track) console.log({ query: JSON.stringify(query) });
 
-    query = processQuery(context, query, skipCheckSecurity);
+    query = processQuery(context, query, skipSecurityCheck);
 
-    if (_.trackLibs) console.log({ query: JSON.stringify(query) });
+    if (_track) console.log({ query: JSON.stringify(query) });
 
-    result = await _.elasticQuery.query(query);
+    result = await elasticSearchQuery(query);
+    const data = result.hits.hits;
+    const total = result.hits.total.value;
 
     result = {
-        data: _.map(result.body.hits.hits, (r) => {
+        total, data: map(data, (r) => {
             const data = r['_source'];
             data.highlight = r.highlight;
             return data;
@@ -48,18 +50,17 @@ export const search = async (context, query, skipCheckSecurity) => {
 };
 
 //upsert will have no permission check, it is simply a base function to be called with fully trust
-export const upsertRecord = async (rawData) => {
+export const upsertRecord = async (rawData: Record<string,any>) => {
 
-    if (!_.isObject(rawData)) throw 'The data is not provided.';
-    const data = _.cloneDeep(rawData);
+    const data = cloneDeep(rawData);
     const entityName = data.entityName;
     const entityType = data.entityType;
     const id = data.id;
 
-    if (!_.isNonEmptyString(entityName)) throw 'The entityName is not provided.';
-    if (!_.isNonEmptyString(id)) throw 'The id is not provided.';
+    if (!isNonEmptyString(entityName)) throw 'The entityName is not provided.';
+    if (!isNonEmptyString(id)) throw 'The id is not provided.';
 
-    if (_.trackLibs) console.log({ name: 'elastic-search-upsert', data: JSON.stringify(data) });
+    if (_track) console.log({ name: 'elastic-search-upsert', data: JSON.stringify(data) });
 
     //need to clean up some fields that will messup elastic search
     delete data['_rid'];
@@ -69,7 +70,7 @@ export const upsertRecord = async (rawData) => {
     delete data['_ts'];
 
     //The fields that has been merged into the searchDisplay and searchContent does not need to be kept
-    _.each([
+   each([
         { name: 'description' },
         { name: 'note' },
         { name: 'summary' },
@@ -87,14 +88,14 @@ export const upsertRecord = async (rawData) => {
 
     await checkAndCreateIndex(data.entityName, data.entityType);
 
-    if (_.trackLibs) console.log({ name: 'elastic-search-upsert', data: JSON.stringify(data) });
+    if (_track) console.log({ name: 'elastic-search-upsert', data: JSON.stringify(data) });
 
     //we will always have an index at entityName level
-    await _.elasticUpsert(entityName.toLowerCase(), data);
+    await elasticSearchUpsert(entityName.toLowerCase(), data);
 
     //if there entityType, we will also index the record in entityType index
-    if (_.isNonEmptyString(entityType)) {
-        await _.elasticUpsert(`${entityName}_${entityType}`.toLowerCase(), data);
+    if (isNonEmptyString(entityType)) {
+        await elasticSearchUpsert(`${entityName}_${entityType}`.toLowerCase(), data);
     }
 
     return data;
@@ -102,32 +103,30 @@ export const upsertRecord = async (rawData) => {
 };
 
 //upsert will have no permission check, it is simply a base function to be called with fully trust
-export const deleteRecord = async (data) => {
-
-    if (!_.isObject(data)) throw 'The data is not provided.';
+export const deleteRecord = async (data: Record<string,any>) => {
 
     const entityName = data.entityName;
     const entityType = data.entityType;
     const id = data.id;
 
-    if (!_.isNonEmptyString(entityName)) throw 'The entityName is not provided.';
-    if (!_.isNonEmptyString(id)) throw 'The id is not provided.';
+    if (!isNonEmptyString(entityName)) throw 'The entityName is not provided.';
+    if (!isNonEmptyString(id)) throw 'The id is not provided.';
 
-    if (_.trackLibs) console.log({ data: JSON.stringify(data) });
+    if (_track) console.log({ data: JSON.stringify(data) });
 
     //we will always have an index at entityName level
-    await _.elasticDelete(entityName.toLowerCase(), id);
+    await elasticSearchDelete(entityName.toLowerCase(), id);
 
     //if there entityType, we will also index the record in entityType index
-    await _.elasticDelete(`${entityName}_${entityType}`.toLowerCase(), id);
+    await elasticSearchDelete(`${entityName}_${entityType}`.toLowerCase(), id);
 
     return data;
 
 };
 
-export const checkAndCreateIndex = async (entityName, entityType, forceCreate) => {
+export const checkAndCreateIndex = async (entityName:string, entityType:string, forceCreate?:boolean) => {
 
-    if (!_.isNonEmptyString(entityName)) throw 'The entityName is not provided.';
+    if (!isNonEmptyString(entityName)) throw 'The entityName is not provided.';
 
     const entityNameIndexName = entityName.toLowerCase();
     const entityTypeIndexName = `${entityName}_${entityType}`.toLowerCase();
@@ -136,57 +135,58 @@ export const checkAndCreateIndex = async (entityName, entityType, forceCreate) =
         await createIndex(entityNameIndexName);
     }
 
-    if (_.isNonEmptyString(entityType) && (forceCreate || !await hasGoodIndex(entityTypeIndexName))) {
+    if (isNonEmptyString(entityType) && (forceCreate || !await hasGoodIndex(entityTypeIndexName))) {
         await createIndex(entityTypeIndexName);
     }
 };
 
-export const hasGoodIndex = async (indexName) => {
+export const hasGoodIndex = async (indexName: string) => {
 
-    if (goodIndexes[indexName]) return true;
+    if (!_process._goodIndexes) _process._goodIndexes = {};
+    if (_process._goodIndexes[indexName]) return true;
 
-    if (_.trackLibs) console.log(`hasGoogIndex - ${indexName}`);
+    if (_track) console.log(`hasGoogIndex - ${indexName}`);
 
-    const searchClient = await _.elasticSearch();
+    const searchClient = await getElasticSearch();
     let result = true;
     try {
         const mappings = (await searchClient.indices.getMapping({ index: indexName })).body[indexName].mappings;
-        if (_.trackLibs) console.log({ mappings: JSON.stringify(mappings) });
+        if (_track) console.log({ mappings: JSON.stringify(mappings) });
         if (mappings.properties.id.type !== 'keyword') {
             result = false;
         }
     }
     catch (error) {
-        console.error({ error: _.isObject(error) ? JSON.stringify(error) : error });
-        result = true;
+        console.error({ error: isObject(error) ? JSON.stringify(error) : error });
+        result = false;
     }
 
     if (!result) {
-        if (_.trackLibs) console.log({ name: 'elastic-search-has-no-index', indexName });
+        if (_track) console.log({ name: 'elastic-search-has-no-index', indexName });
     }
     else {
-        goodIndexes[indexName] = true;
+        _process._goodIndexes[indexName] = true;
     }
 
     return result;
 };
 
-export const createIndex = async (indexName) => {
+export const createIndex = async (indexName: string) => {
     //We will need to make some fields not analyzed so we can use exact match when query
     //To prevent this from happening, we need to tell elastic that it is an exact value and it shouldn’t be analyzed to split into tokens.
 
-    const searchClient = await _.elasticSearch();
-    if (_.trackLibs) console.log({ name: 'elastic-search-checking-exist-index', indexName });
+    const searchClient = await getElasticSearch();
+    if (_track) console.log({ name: 'elastic-search-checking-exist-index', indexName });
     let indexExists = await searchClient.indices.exists({ index: indexName });
-    if (_.trackLibs) console.log({ name: 'elastic-search-checked-exist-index', indexName, indexExists });
-    if (_.isObject(indexExists)) indexExists = indexExists.body;
+    if (_track) console.log({ name: 'elastic-search-checked-exist-index', indexName, indexExists });
+    if (isObject(indexExists)) indexExists = indexExists.body;
 
     //delete first
     if (indexExists) {
         //force recreate, we will need delete first
-        if (_.trackLibs) console.log({ name: 'elastic-search-deleting-index', indexName });
+        if (_track) console.log({ name: 'elastic-search-deleting-index', indexName });
         await searchClient.indices.delete({ index: indexName });
-        if (_.trackLibs) console.log({ name: 'elastic-search-deleted-index', indexName });
+        if (_track) console.log({ name: 'elastic-search-deleted-index', indexName });
     }
 
     //The content of the following fields have been merged into searchDisplay or searchContent fields
@@ -291,11 +291,9 @@ export const createIndex = async (indexName) => {
     //     createParam.body.mappings.properties[nonIndexFields[i].name] = { "type": "text", index: false };
     // }
 
-    if (_.trackLibs) console.log({ name: 'creating index', createParam: JSON.stringify(createParam) });
+    if (_track) console.log({ name: 'creating index', createParam: JSON.stringify(createParam) });
     await searchClient.indices.create(createParam);
-    if (_.trackLibs) console.log({ name: 'created index', createParam: JSON.stringify(createParam) });
+    if (_track) console.log({ name: 'created index', createParam: JSON.stringify(createParam) });
 
-    goodIndexes[indexName] = true;
+    _process._goodIndexes[indexName] = true;
 };
-
-export default { createIndex, upsertRecord, deleteRecord, hasGoodIndex, checkAndCreateIndex, search };
