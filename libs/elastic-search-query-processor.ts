@@ -364,6 +364,7 @@ export const handleOrderBy = (req: Record<string, any>, query: Record<string, an
             if (!isNonEmptyString(o.type)) o.type = 'asc';
             o.type = o.type.toLowerCase() == 'desc' ? 'desc' : 'asc';
             const orderBy: Record<string,any> = {};
+            if (o.attribute=='_ts') o.attribute = 'modifiedOn';
             orderBy[o.attribute] = { "order": o.type };
             result.push(orderBy);
         });
