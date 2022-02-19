@@ -17,17 +17,25 @@
 // 
 //  ALL OTHER RIGHTS RESERVED
 
-import {map, cloneDeep, each} from 'lodash';
-import {_track, isObject, isNonEmptyString, _process} from 'douhub-helper-util';
+import { map, cloneDeep, each, orderBy } from 'lodash';
+import { _track, isObject, isNonEmptyString, _process } from 'douhub-helper-util';
 import { processQuery } from './elastic-search-query-processor';
-import {elasticSearchQuery, elasticSearchDelete, elasticSearchUpsert, getElasticSearch } from 'douhub-helper-service';
+import { elasticSearchQuery, elasticSearchDelete, elasticSearchUpsert, getElasticSearch, cosmosDBRetrieve } from 'douhub-helper-service';
 
-export const queryRecords = async (context: Record<string, any>, query: Record<string, any>, skipSecurityCheck: boolean) => {
+export const queryRecords = async (
+    context: Record<string, any>,
+    query: Record<string, any>,
+    skipSecurityCheck?: boolean,
+    settings?: {
+        includeRawRecord?: boolean,
+        attributes?: string
+    }) => {
 
 
-    let result:Record<string,any> = {};
+    let result: Record<string, any> = {};
 
-    if (_track) console.log({ query: JSON.stringify(query) });
+    const includeRawRecord = settings?.includeRawRecord ? true : false;
+    const attributes = settings?.attributes ? settings?.attributes : '';
 
     query = processQuery(context, query, skipSecurityCheck);
 
@@ -37,20 +45,40 @@ export const queryRecords = async (context: Record<string, any>, query: Record<s
     const data = result.hits.hits;
     const total = result.hits.total.value;
 
-    result = {
-        total, data: map(data, (r) => {
-            const data = r['_source'];
-            data.highlight = r.highlight;
-            return data;
-        })
-    };
+    const ids: string[] = [];
+    const finder: Record<string, any> = {};
+    result = { total };
+    result.data = map(data, (r) => {
+        const data = r['_source'];
+        data.highlight = r.highlight;
+        data.score = r['_score'];
+        if (includeRawRecord) {
+            ids.push(data.id);
+            finder[data.id] = {
+                highlight: data.highlight,
+                score: data.score
+            };
+        }
+        return data;
+    });
+
+    if (includeRawRecord && ids.length > 0) {
+
+        //need to make a query to get all detail data from cosmosDB
+        const records = await cosmosDBRetrieve(ids.join(','), { attributes, includeAzureInfo: false });
+
+        result.data = orderBy(map(records, (r) => {
+            const { highlight, score } = finder[r.id];
+            return { ...r, highlight, score };
+        }), ['score'], ['desc']);
+    }
 
     return result;
 
 };
 
 //upsert will have no permission check, it is simply a base function to be called with fully trust
-export const upsertRecord = async (rawData: Record<string,any>) => {
+export const upsertRecord = async (rawData: Record<string, any>) => {
 
     const data = cloneDeep(rawData);
     const entityName = data.entityName;
@@ -70,7 +98,7 @@ export const upsertRecord = async (rawData: Record<string,any>) => {
     delete data['_ts'];
 
     //The fields that has been merged into the searchDisplay and searchContent does not need to be kept
-   each([
+    each([
         { name: 'description' },
         { name: 'note' },
         { name: 'summary' },
@@ -103,7 +131,7 @@ export const upsertRecord = async (rawData: Record<string,any>) => {
 };
 
 //upsert will have no permission check, it is simply a base function to be called with fully trust
-export const deleteRecord = async (data: Record<string,any>) => {
+export const deleteRecord = async (data: Record<string, any>) => {
 
     const entityName = data.entityName;
     const entityType = data.entityType;
@@ -124,7 +152,7 @@ export const deleteRecord = async (data: Record<string,any>) => {
 
 };
 
-export const checkAndCreateIndex = async (entityName:string, entityType:string, forceCreate?:boolean) => {
+export const checkAndCreateIndex = async (entityName: string, entityType: string, forceCreate?: boolean) => {
 
     if (!isNonEmptyString(entityName)) throw 'The entityName is not provided.';
 

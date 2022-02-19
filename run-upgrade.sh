@@ -1,3 +1,3 @@
-yarn upgrade douhub-helper-util --Latest
-yarn upgrade douhub-helper-lambda --Latest
-yarn upgrade douhub-helper-service --Latest
+yarn upgrade douhub-helper-util --latest
+yarn upgrade douhub-helper-lambda --latest
+yarn upgrade douhub-helper-service --latest

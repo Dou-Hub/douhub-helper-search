@@ -1419,10 +1419,10 @@ douhub-helper-lambda@^1.0.33:
     rate-limiter-flexible "^2.3.5"
     uuid "^8.3.2"
 
-douhub-helper-service@^1.0.36, douhub-helper-service@^1.0.37:
-  version "1.0.37"
-  resolved "https://registry.yarnpkg.com/douhub-helper-service/-/douhub-helper-service-1.0.37.tgz#3195c6213ad4954cd13ccd575b01869c47b54332"
-  integrity sha512-fBUAShgAx49RnGUEG+5C+Za80mM1hyyFkbmnWPIA1r4AHCdhcsuB/hCjY7nk2ThHm+u83jY2rOa8vGCY0TFZcw==
+douhub-helper-service@1.0.40, douhub-helper-service@^1.0.36:
+  version "1.0.40"
+  resolved "https://registry.yarnpkg.com/douhub-helper-service/-/douhub-helper-service-1.0.40.tgz#1c494e06395b183e2e659905ce13dd4150fc696e"
+  integrity sha512-HBYl7elgnTZcAD0QNu7DKClXcBNmIFcT6vTfkzX16sedCWhqTy/xrKlyusf2DHHRZgpfb1+gFVnhG8eqj3UKDA==
   dependencies:
     "@azure/cosmos" "^3.14.1"
     "@elastic/elasticsearch" "^7.17.0"
@@ -1433,9 +1433,9 @@ douhub-helper-service@^1.0.36, douhub-helper-service@^1.0.37:
     qs "^6.10.3"
 
 douhub-helper-util@^1.0.36, douhub-helper-util@^1.0.47:
-  version "1.0.47"
-  resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.47.tgz#f0e14c747a2c35c236119f30f14b0ef0c5c918b6"
-  integrity sha512-5Y1hFE76NEo3Xljxjw90fYwN1aB8VYIiV5m0TQmchIt5lm11sLchPGh/H4PK8ngVjh5T0IwrCX0FrOdas2MR1g==
+  version "1.0.55"
+  resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.55.tgz#960d00da62c47ad135d27c1e839157cd531116df"
+  integrity sha512-zuqIEHh6NoIIweRI8w9XhI7SDB8p//Pn6Z/n8AdKmWzXHT8g7ASSkn5gLntmbgKqm0t/TPoPq1P6EFmLmXuH9g==
   dependencies:
     axios "^0.24.0"
     is-url "^1.2.4"
@@ -1830,9 +1830,9 @@ flatted@^3.1.0:
   integrity sha512-WIWGi2L3DyTUvUrwRKgGi9TwxQMUEqPOPQBVi71R96jZXJdFskXEmf54BoZaS1kknGODoIGASGEzBUYdyMCBJg==
 
 follow-redirects@^1.14.4:
-  version "1.14.7"
-  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.14.7.tgz#2004c02eb9436eee9a21446a6477debf17e81685"
-  integrity sha512-+hbxoLbFMbRKDwohX8GkTataGqO6Jb7jGwpAlwgy2bIz25XtRm7KEzJM76R1WiNT5SwZkX4Y75SwBolkpmE7iQ==
+  version "1.14.9"
+  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.14.9.tgz#dd4ea157de7bfaf9ea9b3fbd85aa16951f78d8d7"
+  integrity sha512-MQDfihBQYMcyy5dhRDJUHcw7lb2Pv/TuE6xP1vyraLukNDHKbDxDNaOE3NbCAdKQApno+GPRyo1YAp89yCjK4w==
 
 form-data@^3.0.0:
   version "3.0.1"
@@ -2828,9 +2828,9 @@ levn@~0.3.0:
     type-check "~0.3.2"
 
 libphonenumber-js@^1.9.42:
-  version "1.9.48"
-  resolved "https://registry.yarnpkg.com/libphonenumber-js/-/libphonenumber-js-1.9.48.tgz#b667161600cf2cfd7af0448e857344616fdb6fb4"
-  integrity sha512-2aiDGkr5Ty7LZRhKhnMeV9tfRbzd2zahgF12I0v11AFwEelSdiu5t8/Npf3UejKcuoO4anqTdjnIW3dEtj1xYQ==
+  version "1.9.49"
+  resolved "https://registry.yarnpkg.com/libphonenumber-js/-/libphonenumber-js-1.9.49.tgz#d431703cd699be2ccced5b95f26182a7c50a9227"
+  integrity sha512-/wEOIONcVboFky+lWlCaF7glm1FhBz11M5PHeCApA+xDdVfmhKjHktHS8KjyGxouV5CSXIr4f3GvLSpJa4qMSg==
 
 locate-path@^2.0.0:
   version "2.0.0"
