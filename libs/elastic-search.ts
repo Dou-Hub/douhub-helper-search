@@ -36,11 +36,14 @@ export const queryRecords = async (
 
     const includeRawRecord = settings?.includeRawRecord ? true : false;
     const attributes = settings?.attributes ? settings?.attributes : '';
+    
+    await checkAndCreateIndex(query.entityName, query.entityType);
 
     query = processQuery(context, query, skipSecurityCheck);
 
     if (_track) console.log({ query: JSON.stringify(query) });
 
+  
     result = await elasticSearchQuery(query);
     const data = result.hits.hits;
     const total = result.hits.total.value;
@@ -160,10 +163,12 @@ export const checkAndCreateIndex = async (entityName: string, entityType: string
     const entityTypeIndexName = `${entityName}_${entityType}`.toLowerCase();
 
     if (forceCreate || !await hasGoodIndex(entityNameIndexName)) {
+        if (_track) console.log(`checkAndCreateIndex - create index - ${entityNameIndexName}`);
         await createIndex(entityNameIndexName);
     }
 
     if (isNonEmptyString(entityType) && (forceCreate || !await hasGoodIndex(entityTypeIndexName))) {
+        if (_track) console.log(`checkAndCreateIndex - create index - ${entityTypeIndexName}`);
         await createIndex(entityTypeIndexName);
     }
 };
@@ -171,15 +176,17 @@ export const checkAndCreateIndex = async (entityName: string, entityType: string
 export const hasGoodIndex = async (indexName: string) => {
 
     if (!_process._goodIndexes) _process._goodIndexes = {};
-    if (_process._goodIndexes[indexName]) return true;
-
-    if (_track) console.log(`hasGoogIndex - ${indexName}`);
-
+    if (_process._goodIndexes[indexName]) 
+    {
+        if (_track) console.log(`hasGoodIndex - ${indexName} - from cache`);
+        return true;
+    }
+ 
     const searchClient = await getElasticSearch();
     let result = true;
     try {
         const mappings = (await searchClient.indices.getMapping({ index: indexName })).body[indexName].mappings;
-        if (_track) console.log({ mappings: JSON.stringify(mappings) });
+        if (_track) console.log(`hasGoodIndex - ${indexName} - get mapping`);
         if (mappings.properties.id.type !== 'keyword') {
             result = false;
         }
@@ -190,7 +197,7 @@ export const hasGoodIndex = async (indexName: string) => {
     }
 
     if (!result) {
-        if (_track) console.log({ name: 'elastic-search-has-no-index', indexName });
+        if (_track) console.log(`hasGoodIndex - ${indexName} - index does not exist`);
     }
     else {
         _process._goodIndexes[indexName] = true;
