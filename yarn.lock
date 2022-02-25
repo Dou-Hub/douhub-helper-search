@@ -1405,10 +1405,10 @@ domexception@^2.0.1:
   dependencies:
     webidl-conversions "^5.0.0"
 
-douhub-helper-lambda@1.0.44:
-  version "1.0.44"
-  resolved "https://registry.yarnpkg.com/douhub-helper-lambda/-/douhub-helper-lambda-1.0.44.tgz#46ad4c3470a81eb51fdb02d394b422bf9b7418c3"
-  integrity sha512-ArEmDC3fGpNrXMaUnAGkBFw1+yfrusZ1WP+Ksz9ElbRyozSxJSQU1yy4DZn0FgqtOAsp2s3zkJQTZLWmKd1UyA==
+douhub-helper-lambda@1.0.50:
+  version "1.0.50"
+  resolved "https://registry.yarnpkg.com/douhub-helper-lambda/-/douhub-helper-lambda-1.0.50.tgz#469b617f838ff6660e196b17b0e7f52eee2303ea"
+  integrity sha512-xxtbXTNiK1QBg4zzFpmmQUKNyA+49b/DlH91XLSo98OGjqrI6wb2aRUDr9E5BmTa3gVW2/9Hl9VDGl//CcIqOg==
   dependencies:
     aws-sdk "^2.1033.0"
     axios "^0.24.0"
@@ -1419,7 +1419,19 @@ douhub-helper-lambda@1.0.44:
     rate-limiter-flexible "^2.3.5"
     uuid "^8.3.2"
 
-douhub-helper-service@1.0.41, douhub-helper-service@^1.0.41:
+douhub-helper-service@1.0.48:
+  version "1.0.48"
+  resolved "https://registry.yarnpkg.com/douhub-helper-service/-/douhub-helper-service-1.0.48.tgz#06dc2490161b4b25a0d78e2997aef69d7dc7de91"
+  integrity sha512-qebdBBGyX++Z9okqE5CpHGyjN5jcsDRPbD2LRNq7zFo04yrq7lPe+4UuKIdMkqHTlmJHhHk3I+s5wbTgiwi+Pg==
+  dependencies:
+    "@azure/cosmos" "^3.14.1"
+    "@elastic/elasticsearch" "^7.17.0"
+    aws-sdk "^2.1033.0"
+    douhub-helper-util "1.0.58"
+    lodash "^4.17.21"
+    qs "^6.10.3"
+
+douhub-helper-service@^1.0.41:
   version "1.0.41"
   resolved "https://registry.yarnpkg.com/douhub-helper-service/-/douhub-helper-service-1.0.41.tgz#a8b5bcf98a3a6a215f9a8f52e5ba62f9578d50de"
   integrity sha512-mkLJLg9cWjlsSmX5oRJUseDebxmmY009KKr+HT34oq5mtMrHf3xpe4U1WzMKsapledVD3W72IBz4QWtzojcMgg==
@@ -1431,7 +1443,20 @@ douhub-helper-service@1.0.41, douhub-helper-service@^1.0.41:
     lodash "^4.17.21"
     qs "^6.10.3"
 
-douhub-helper-util@1.0.55, douhub-helper-util@^1.0.55:
+douhub-helper-util@1.0.58:
+  version "1.0.58"
+  resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.58.tgz#b2f5620f2d3621817e1c0e65633c708662ab9a1a"
+  integrity sha512-vv5OVA3Q52lLFQn/yPxYE6BC3WCVQOAlbAMke72wv7MwSa7ycjJPETel6qqKPNQCe/yX2Iu17rQISCZ5/NQV+Q==
+  dependencies:
+    axios "^0.24.0"
+    is-url "^1.2.4"
+    js-base64 "^3.7.2"
+    libphonenumber-js "^1.9.42"
+    lodash "^4.17.21"
+    slugify "^1.6.4"
+    uuid "^8.3.2"
+
+douhub-helper-util@^1.0.55:
   version "1.0.55"
   resolved "https://registry.yarnpkg.com/douhub-helper-util/-/douhub-helper-util-1.0.55.tgz#960d00da62c47ad135d27c1e839157cd531116df"
   integrity sha512-zuqIEHh6NoIIweRI8w9XhI7SDB8p//Pn6Z/n8AdKmWzXHT8g7ASSkn5gLntmbgKqm0t/TPoPq1P6EFmLmXuH9g==

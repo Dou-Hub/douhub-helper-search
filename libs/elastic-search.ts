@@ -20,7 +20,7 @@
 import { map, cloneDeep, each, orderBy } from 'lodash';
 import { _track, isObject, isNonEmptyString, _process } from 'douhub-helper-util';
 import { processQuery } from './elastic-search-query-processor';
-import { elasticSearchQuery, elasticSearchDelete, elasticSearchUpsert, getElasticSearch, cosmosDBRetrieve } from 'douhub-helper-service';
+import { elasticSearchQuery, elasticSearchDelete, elasticSearchUpsert, getElasticSearch, cosmosDBRetrieveByIds } from 'douhub-helper-service';
 
 export const queryRecords = async (
     context: Record<string, any>,
@@ -45,31 +45,33 @@ export const queryRecords = async (
 
   
     result = await elasticSearchQuery(query);
+
     const data = result.hits.hits;
     const total = result.hits.total.value;
 
     const ids: string[] = [];
     const finder: Record<string, any> = {};
     result = { total };
+
     result.data = map(data, (r) => {
-        const data = r['_source'];
-        data.highlight = r.highlight;
-        data.score = r['_score'];
+        const s = r['_source'];
+        s.highlight = r.highlight;
+        s.score = r['_score'];
         if (includeRawRecord) {
-            ids.push(data.id);
-            finder[data.id] = {
-                highlight: data.highlight,
-                score: data.score
+            ids.push(s.id);
+            finder[s.id] = {
+                highlight: s.highlight,
+                score: s.score
             };
         }
-        return data;
+        return s;
     });
 
     if (includeRawRecord && ids.length > 0) {
 
         //need to make a query to get all detail data from cosmosDB
-        const records = await cosmosDBRetrieve(ids.join(','), { attributes, includeAzureInfo: false });
-
+        const records = await cosmosDBRetrieveByIds(ids, { attributes, includeAzureInfo: false });
+        
         result.data = orderBy(map(records, (r) => {
             const { highlight, score } = finder[r.id];
             return { ...r, highlight, score };

@@ -1,7 +1,7 @@
 {
   "name": "douhub-helper-search",
   "licence": "MIT",
-  "version": "1.0.12",
+  "version": "1.0.15",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
@@ -16,9 +16,9 @@
   "dependencies": {
     "@azure/cosmos": "^3.14.1",
     "aws-sdk": "^2.1033.0",
-    "douhub-helper-lambda": "1.0.44",
-    "douhub-helper-service": "1.0.41",
-    "douhub-helper-util": "1.0.55",
+    "douhub-helper-lambda": "1.0.50",
+    "douhub-helper-service": "1.0.48",
+    "douhub-helper-util": "1.0.58",
     "lodash": "^4.17.21",
     "qs": "^6.10.3"
   },
