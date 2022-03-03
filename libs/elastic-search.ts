@@ -18,8 +18,9 @@
 //  ALL OTHER RIGHTS RESERVED
 
 import { map, cloneDeep, each, orderBy } from 'lodash';
-import { _track, isObject, isNonEmptyString, _process } from 'douhub-helper-util';
+import { _track, isObject, isNonEmptyString, _process, getEntity } from 'douhub-helper-util';
 import { processQuery } from './elastic-search-query-processor';
+import { getSolution } from 'douhub-helper-lambda';
 import { elasticSearchQuery, elasticSearchDelete, elasticSearchUpsert, getElasticSearch, cosmosDBRetrieveByIds } from 'douhub-helper-service';
 
 export const queryRecords = async (
@@ -36,14 +37,17 @@ export const queryRecords = async (
 
     const includeRawRecord = settings?.includeRawRecord ? true : false;
     const attributes = settings?.attributes ? settings?.attributes : '';
-    
-    await checkAndCreateIndex(query.entityName, query.entityType);
+    const solutionId = context.solutionId;
+
+    await checkAndCreateIndex(solutionId, query.entityName, query.entityType);
+
+    if (_track) console.log({ queryPreProcess: JSON.stringify(query) });
 
     query = processQuery(context, query, skipSecurityCheck);
 
-    if (_track) console.log({ query: JSON.stringify(query) });
+    if (_track) console.log({ queryPostProcess: JSON.stringify(query) });
 
-  
+
     result = await elasticSearchQuery(query);
 
     const data = result.hits.hits;
@@ -71,7 +75,7 @@ export const queryRecords = async (
 
         //need to make a query to get all detail data from cosmosDB
         const records = await cosmosDBRetrieveByIds(ids, { attributes, includeAzureInfo: false });
-        
+
         result.data = orderBy(map(records, (r) => {
             const { highlight, score } = finder[r.id];
             return { ...r, highlight, score };
@@ -119,7 +123,7 @@ export const upsertRecord = async (rawData: Record<string, any>) => {
         delete data[f.name];
     });
 
-    await checkAndCreateIndex(data.entityName, data.entityType);
+    await checkAndCreateIndex(data.solutionId, data.entityName, data.entityType);
 
     if (_track) console.log({ name: 'elastic-search-upsert', data: JSON.stringify(data) });
 
@@ -157,7 +161,7 @@ export const deleteRecord = async (data: Record<string, any>) => {
 
 };
 
-export const checkAndCreateIndex = async (entityName: string, entityType: string, forceCreate?: boolean) => {
+export const checkAndCreateIndex = async (solutionId: string, entityName: string, entityType: string, forceCreate?: boolean) => {
 
     if (!isNonEmptyString(entityName)) throw 'The entityName is not provided.';
 
@@ -166,24 +170,23 @@ export const checkAndCreateIndex = async (entityName: string, entityType: string
 
     if (forceCreate || !await hasGoodIndex(entityNameIndexName)) {
         if (_track) console.log(`checkAndCreateIndex - create index - ${entityNameIndexName}`);
-        await createIndex(entityNameIndexName);
+        await createIndex(solutionId, entityNameIndexName);
     }
 
     if (isNonEmptyString(entityType) && (forceCreate || !await hasGoodIndex(entityTypeIndexName))) {
         if (_track) console.log(`checkAndCreateIndex - create index - ${entityTypeIndexName}`);
-        await createIndex(entityTypeIndexName);
+        await createIndex(solutionId, entityName, entityType);
     }
 };
 
 export const hasGoodIndex = async (indexName: string) => {
 
     if (!_process._goodIndexes) _process._goodIndexes = {};
-    if (_process._goodIndexes[indexName]) 
-    {
+    if (_process._goodIndexes[indexName]) {
         if (_track) console.log(`hasGoodIndex - ${indexName} - from cache`);
         return true;
     }
- 
+
     const searchClient = await getElasticSearch();
     let result = true;
     try {
@@ -208,15 +211,23 @@ export const hasGoodIndex = async (indexName: string) => {
     return result;
 };
 
-export const createIndex = async (indexName: string) => {
+export const createIndex = async (solutionId: string, entityName: string, entityType?: string) => {
     //We will need to make some fields not analyzed so we can use exact match when query
     //To prevent this from happening, we need to tell elastic that it is an exact value and it shouldn’t be analyzed to split into tokens.
+
+    const indexName = isNonEmptyString(entityType) ? `${entityName}_${entityType}`.toLowerCase() : entityName.toLowerCase();
+
+    //get entity definition from solutio file
+    const solution = await getSolution(solutionId);
+    const entity = getEntity(solution, entityName, entityType)
 
     const searchClient = await getElasticSearch();
     if (_track) console.log({ name: 'elastic-search-checking-exist-index', indexName });
     let indexExists = await searchClient.indices.exists({ index: indexName });
     if (_track) console.log({ name: 'elastic-search-checked-exist-index', indexName, indexExists });
     if (isObject(indexExists)) indexExists = indexExists.body;
+
+    const addtionalProperties = entity && isObject(entity.searchProperties) ? entity.searchProperties : {};
 
     //delete first
     if (indexExists) {
@@ -290,6 +301,8 @@ export const createIndex = async (indexName: string) => {
                     "language": { "type": "keyword" },
                     "type": { "type": "keyword" },
 
+                    "slug": { "type": "keyword" },
+
                     "createdOn": { "type": "date" },
                     "modifiedOn": { "type": "date" },
                     "ownedOn": { "type": "date" },
@@ -298,6 +311,7 @@ export const createIndex = async (indexName: string) => {
                     "tags": { "type": "text", "boost": 3 },
                     "tagsLowerCase": { "type": "text", "boost": 3 },
                     "categoryIds": { "type": "text" },
+                    "slugs": { "type": "text" },
                     // "globalCategoryIds": { "type": "keyword" },
 
                     "isGlobal": { "type": "boolean" },
@@ -318,7 +332,8 @@ export const createIndex = async (indexName: string) => {
                     //"rank": {"type": "rank_feature"},
 
                     "searchDisplay": { "type": "text", "boost": 2, "analyzer": "platform_analyzer_text" },
-                    "searchContent": { "type": "text", "analyzer": "platform_analyzer_text" }
+                    "searchContent": { "type": "text", "analyzer": "platform_analyzer_text" },
+                    ...addtionalProperties
                 }
             }
         }

@@ -9,7 +9,7 @@ export {
 
 export {
     processQuery, groupConditions, handleCategoryConditions, handleSecurityConditions,
-    handleSolutionConditions, handleScopeCondition, handleSecurityCondition_Scope,
+    handleScopeCondition, handleSecurityCondition_Scope,
     handleAttributes, handleOrderBy
 
 } from './libs/elastic-search-query-processor';

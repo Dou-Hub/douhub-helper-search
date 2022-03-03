@@ -1,5 +1,5 @@
 
-import { isString, isArray, without, map, isNumber, each } from 'lodash';
+import { isString, isArray, without, map, isNumber, each, isNil } from 'lodash';
 import { HTTPERROR_403 } from 'douhub-helper-lambda';
 import { isObject, isNonEmptyString, newGuid, checkEntityPrivilege } from 'douhub-helper-util';
 
@@ -61,13 +61,13 @@ export const processQuery = (context: Record<string, any>, req: Record<string, a
             {
                 bool: {
                     must: [],
-                    filter:
-                        [{
-                            term: {
-                                "stateCode": isNumber(req.stateCode) ? req.stateCode : 0
-                            }
-                        }]
-
+                    filter:[]
+                    // filter:
+                    //     [{
+                    //         term: {
+                    //             "stateCode": isNumber(req.stateCode) ? req.stateCode : 0
+                    //         }
+                    //     }]
                 }
             },
             highlight: {
@@ -122,7 +122,7 @@ export const processQuery = (context: Record<string, any>, req: Record<string, a
     //convert attribues into a comma delimited string or *
     query = handleAttributes(req, query);
 
-    query = handleSolutionConditions( context, req, query);
+    // query = handleSolutionConditions( context, req, query);
     query = handleCategoryConditions(req, query);
     query = handleScopeCondition(context, req, query);
 
@@ -131,49 +131,61 @@ export const processQuery = (context: Record<string, any>, req: Record<string, a
 
     req.conditions = isArray(req.conditions) ? req.conditions : [];
 
-    // req = groupConditions(req);
+    query = groupConditions(req, query);
     query = handleOrderBy( req, query);
 
     return query;
 };
 
-export const groupConditions = (req: Record<string, any>) => {
+export const groupConditions = (req: Record<string, any>, query: Record<string, any>) => {
 
     for (var i = 0; i < req.conditions.length; i++) {
         if (isObject(req.conditions[i])) {
-            const paramName = `@p${newGuid().replace(/-/g, '')}`;
-            const paramValue = req.conditions[i].value ? req.conditions[i].value : '';
-            req.parameters.push({ name: paramName, value: paramValue });
-
-            const attribute = isNonEmptyString(req.conditions[i].attribute) ? 'c.' + req.conditions[i].attribute : '';
+           
+            const attribute = isNonEmptyString(req.conditions[i].attribute) ? req.conditions[i].attribute : '';
             const op = isNonEmptyString(req.conditions[i].op) ? req.conditions[i].op.toUpperCase() : '';
+            const value = !isNil(req.conditions[i].value) ? req.conditions[i].value : '';
 
             if (attribute.length > 0) {
                 switch (op) {
-                    case 'SEARCH':
+                    case 'ARRAY_CONTAINS':
                         {
-                            req.conditions[i] = `(CONTAINS(LOWER(c.searchDisplay), ${paramName}) OR CONTAINS(LOWER(c.searchContent), ${paramName}))`;
+                            // const categoryIds = req.categoryIds;
+                            // if (!isArray(categoryIds) || isArray(categoryIds) && categoryIds.length == 0) return query;
+
+                            // const terms = map(categoryIds, (categoryId) => {
+                            //     return { term: { categoryIds: categoryId } };
+                            // });
+
+                            // query.body.query.bool.filter.push(
+                            // {
+                            //     bool: {
+                            //         should: terms
+                            //     }
+                            // });
+
                             break;
                         }
-                    case 'CONTAINS':
+                    case '=':
                         {
-                            req.conditions[i] = `${op}(${attribute}, ${paramName})`;
+                            const condition:any = {
+                                "term": {}
+                            };
+                            condition.term[attribute] = value;
+                            query.body.query.bool.filter.push(condition);
                             break;
                         }
                     default:
                         {
-                            req.conditions[i] = `${attribute} ${op} ${paramName}`;
+                            
                             break;
                         }
                 }
             }
-
-
         }
-        req.query = i == 0 ? `${req.query} ${req.conditions[i]} ` : `${req.query} and (${req.conditions[i]})`;
     }
 
-    return req;
+    return query;
 };
 
 export const handleCategoryConditions = (req: Record<string, any>, query: Record<string, any>) => {
@@ -199,27 +211,27 @@ export const handleSecurityConditions = (context: Record<string,any>,  req: Reco
     return query;
 };
 
-export const handleSolutionConditions = (context: Record<string,any>, req: Record<string, any>, query: Record<string, any>) => {
+// export const handleSolutionConditions = (context: Record<string,any>, req: Record<string, any>, query: Record<string, any>) => {
 
-    const { solution } = context;
+//     const { solution } = context;
 
-    if (
+//     if (
 
-        req.entityName == 'SolutionDashboard' ||
-        req.entityName == 'Site' ||
-        req.entityName == 'Localization' ||
-        req.entityName == 'SolutionDefinition') {
+//         req.entityName == 'SolutionDashboard' ||
+//         req.entityName == 'Site' ||
+//         req.entityName == 'Localization' ||
+//         req.entityName == 'SolutionDefinition') {
 
-        query.body.query.bool.filter.push(
-            {
-                term:
-                {
-                    ownerId: solution.id
-                }
-            });
-    }
-    return query;
-};
+//         query.body.query.bool.filter.push(
+//             {
+//                 term:
+//                 {
+//                     ownerId: solution.id
+//                 }
+//             });
+//     }
+//     return query;
+// };
 
 
 export const handleScopeCondition = (context: Record<string,any>, req: Record<string, any>, query: Record<string, any>) => {
