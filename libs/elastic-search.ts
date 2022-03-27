@@ -74,7 +74,7 @@ export const queryRecords = async (
     if (includeRawRecord && ids.length > 0) {
 
         //need to make a query to get all detail data from cosmosDB
-        const records = await cosmosDBRetrieveByIds(ids, { attributes, includeAzureInfo: false });
+        const records = await cosmosDBRetrieveByIds(ids, { attributes });
 
         result.data = orderBy(map(records, (r) => {
             const { highlight, score } = finder[r.id];
